@@ -107,6 +107,7 @@ def find_command(name: str) -> Command | None:
 
 
 def main():
+    # Trim the first arg
     args = sys.argv[1:]
 
     # The only shared option is '--addons-path=' needed to discover additional
@@ -116,6 +117,7 @@ def main():
         config._parse_config([args[0]])
         args = args[1:]
 
+    # Determine command name (if the arg doesn't start with a - than we know it is a command, not a flag)
     if len(args) and not args[0].startswith('-'):
         # Command specified, search for it
         command_name = args[0]
@@ -123,13 +125,22 @@ def main():
     elif '-h' in args or '--help' in args:
         # No command specified, but help is requested
         command_name = 'help'
-        args = [x for x in args if x not in ('-h', '--help')]
+        # Remove all help flags from args (e.g., -h, --help)
+        # Example:
+        #   args = ['-h', '--foo', '--help']
+        #   After removal: ['--foo']
+        cleaned_args = []
+        for arg in args:
+            if arg not in ('-h', '--help'):
+                cleaned_args.append(arg)
+        args = cleaned_args
     else:
         # No command specified, default command used
         command_name = 'server'
 
     if command := find_command(command_name):
         odoo.cli.COMMAND = command_name
+        # execute the command with remaining args
         command().run(args)
     else:
         message = (
